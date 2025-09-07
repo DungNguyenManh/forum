@@ -40,3 +40,8 @@
         Thanh điều hướng (Navbar) hiển thị trạng thái đăng nhập.
 
         Form đăng nhập/đăng ký có validation.
+
+
+common: dùng chung
+config: Cấu hình
+utils: Helper function
