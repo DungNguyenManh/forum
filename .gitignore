@@ -46,3 +46,7 @@ pids
 
 # TypeScript
 *.tsbuildinfo
+
+# Local backups of removed nested git repos
+backend/_git_backend_bak/
+frontend/_git_frontend_bak/
