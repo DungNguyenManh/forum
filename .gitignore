@@ -1,0 +1,48 @@
+# Global ignores for this monorepo
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Env files
+.env
+.env.*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node
+node_modules/
+
+# Build outputs
+.dist/
+dist/
+build/
+
+# Next.js
+.next/
+out/
+.turbo/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# TypeScript
+*.tsbuildinfo
