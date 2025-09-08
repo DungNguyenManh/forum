@@ -8,11 +8,20 @@ export class User {
   @Prop({ required: true, unique: true, trim: true })
   email: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, select: false })
   password: string;
 
   @Prop({ trim: true })
   name?: string;
+
+  @Prop({ type: [String], default: ['user'] })
+  roles?: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+UserSchema.set('toJSON', {
+  transform: function (_doc, ret) {
+    delete (ret as any).password;
+    return ret;
+  },
+});

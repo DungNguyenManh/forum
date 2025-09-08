@@ -8,19 +8,32 @@ import { CommentModule } from './modules/comment/comment.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import databaseConfig from './config/database.config';
+import { EventsModule } from './modules/events/events.module';
 import { DatabaseModule } from './database/database.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [databaseConfig] }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: Number(process.env.RATE_TTL || 60),
+        limit: Number(process.env.RATE_LIMIT || 100),
+      },
+    ]),
     DatabaseModule,
     PostModule,
     UserModule,
     CommentModule,
     AuthModule,
     AdminModule,
+    EventsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule { }
