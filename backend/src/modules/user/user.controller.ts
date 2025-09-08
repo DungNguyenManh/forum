@@ -34,7 +34,7 @@ export class UserController {
     const wantsChangeRoles = Array.isArray(updateUserDto.roles);
     const isAdmin = (user?.roles || []).includes('admin');
     if (wantsChangeRoles && !isAdmin) {
-      throw new ForbiddenException('Only admin can change roles');
+      throw new ForbiddenException('Chỉ quản trị viên mới có thể thay đổi vai trò');
     }
     return this.userService.update(id, updateUserDto);
   }

@@ -13,6 +13,9 @@ export class Post {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   author?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Category' })
+  category?: Types.ObjectId;
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);

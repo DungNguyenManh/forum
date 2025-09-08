@@ -11,4 +11,8 @@ export class CreatePostDto {
     @IsOptional()
     @IsString()
     author?: string;
+
+    @IsOptional()
+    @IsString()
+    category?: string;
 }

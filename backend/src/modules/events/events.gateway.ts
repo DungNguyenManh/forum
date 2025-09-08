@@ -14,7 +14,7 @@ export class EventsGateway {
     async handleConnection(client: Socket) {
         try {
             const token = this.extractToken(client);
-            if (!token) throw new UnauthorizedException('Missing token');
+            if (!token) throw new UnauthorizedException('Thiếu token');
             const payload = await this.jwt.verifyAsync(token);
             (client as any).user = { sub: payload.sub, email: payload.email, roles: payload.roles };
             // auto join personal room

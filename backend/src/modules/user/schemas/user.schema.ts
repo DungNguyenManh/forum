@@ -11,8 +11,8 @@ export class User {
   @Prop({ required: true, select: false })
   password: string;
 
-  @Prop({ trim: true })
-  name?: string;
+  @Prop({ required: true, trim: true })
+  username: string;
 
   @Prop({ type: [String], default: ['user'] })
   roles?: string[];

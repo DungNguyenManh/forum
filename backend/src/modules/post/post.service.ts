@@ -29,6 +29,7 @@ export class PostService {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (q.author) filter.author = q.author;
+    if ((q as any).category) (filter as any).category = (q as any).category;
     const sort = q.sort || '-createdAt';
     const [items, total] = await Promise.all([
       this.postModel
@@ -36,7 +37,8 @@ export class PostService {
         .sort(sort as any)
         .skip(skip)
         .limit(limit)
-        .populate('author', 'email name')
+        .populate('author', 'email username')
+        .populate('category', 'name slug')
         .lean(),
       this.postModel.countDocuments(filter),
     ]);
@@ -44,14 +46,14 @@ export class PostService {
   }
 
   findOne(id: string) {
-    return this.postModel.findById(id).populate('author', 'email name').lean();
+    return this.postModel.findById(id).populate('author', 'email username').populate('category', 'name slug').lean();
   }
 
   async update(id: string, updatePostDto: UpdatePostDto, userId?: string, isAdmin?: boolean) {
     const doc = await this.postModel.findById(id);
-    if (!doc) throw new NotFoundException('Post not found');
+    if (!doc) throw new NotFoundException('Không tìm thấy bài viết');
     const owner = doc.author?.toString();
-    if (!isAdmin && owner && owner !== userId) throw new ForbiddenException('Not owner');
+    if (!isAdmin && owner && owner !== userId) throw new ForbiddenException('Bạn không phải là chủ sở hữu');
     Object.assign(doc, updatePostDto);
     await doc.save();
     const json = doc.toJSON();
