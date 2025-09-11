@@ -15,15 +15,4 @@ export class CreateUserDto {
     @IsEmail({}, { message: 'Email không hợp lệ' })
     email: string;
 
-    @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
-    phone: string;
-
-    @IsOptional()
-    age?: number;
-
-    @IsOptional()
-    address?: string;
-
-    @IsOptional()
-    avatar?: string;
 }

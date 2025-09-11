@@ -31,11 +31,6 @@ export class UsersService {
         this.notificationsGateway.server.emit('userRegisterResult', { success: false, message: 'Username đã được sử dụng' });
         throw new ConflictException('Username đã được sử dụng');
       }
-      if (await this.userModel.exists({ phone: dto.phone })) {
-        this.notificationsGateway.server.emit('userRegisterResult', { success: false, message: 'Số điện thoại đã được sử dụng' });
-        throw new ConflictException('Số điện thoại đã được sử dụng');
-      }
-      // Mã hóa mật khẩu trước khi lưu
       const password = await bcrypt.hash(dto.password, 10);
       const user = await this.userModel.create({
         ...dto,
