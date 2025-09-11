@@ -6,15 +6,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { User, UserSchema } from '../user/schemas/user.schemas';
+import { User, UserSchema } from '../user/schemas/user.schema';
 import { JwtStrategy } from './jwt.strategy';
 import { LocalStrategy } from './local.strategy';
-import { GoogleStrategy } from './google.strategy';
 const AUTH_PROVIDERS: any[] = [AuthService, JwtStrategy, LocalStrategy];
-// Only enable Google OAuth when envs are configured to avoid runtime crash
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  AUTH_PROVIDERS.push(GoogleStrategy);
-}
 
 @Module({
   imports: [

@@ -50,32 +50,4 @@ export class AuthService {
     };
   }
 
-  // 👉 Xử lý đăng nhập Google
-  async validateGoogleUser(googleUser: any) {
-    // Kiểm tra user đã tồn tại chưa
-    let user = await this.usersService.findByEmail(googleUser.email);
-    if (!user) {
-      // Nếu chưa có thì tạo mới, dùng giá trị mặc định cho các trường bắt buộc
-      user = await this.usersService.create({
-        email: googleUser.email,
-        username: googleUser.firstName + ' ' + googleUser.lastName,
-        password: '', // Google user không có password
-        confirmPassword: '',
-        phone: '0000000000', // hoặc bạn có thể random hoặc để giá trị mặc định
-        avatar: googleUser.picture,
-      });
-    }
-    // Sinh JWT token
-    if (!user) throw new UnauthorizedException('Không thể tạo user Google');
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const access_token = this.jwtService.sign(payload);
-    return {
-      user_id: user.id,
-      username: user.username,
-      email: user.email,
-      avatar: user.avatar,
-      access_token,
-      role: user.role,
-    };
-  }
 }
