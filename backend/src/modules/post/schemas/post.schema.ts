@@ -16,6 +16,20 @@ export class Post {
 
   @Prop({ type: Types.ObjectId, ref: 'Category' })
   category?: Types.ObjectId;
+
+  @Prop({ type: Number, default: 0 })
+  commentCount?: number;
+
+  @Prop({ type: Number, default: 0 })
+  viewCount?: number;
+
+  @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
+  likedBy?: Types.ObjectId[];
+
+  @Prop({ type: Number, default: 0 })
+  likeCount?: number;
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
+// Text index for search
+PostSchema.index({ title: 'text', content: 'text' });

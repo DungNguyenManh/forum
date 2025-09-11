@@ -29,7 +29,14 @@ export class PostService {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (q.author) filter.author = q.author;
-    if ((q as any).category) (filter as any).category = (q as any).category;
+    if (q.category) filter.category = q.category;
+    if (q.q) {
+      const regex = new RegExp(q.q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { title: regex },
+        { content: regex },
+      ];
+    }
     const sort = q.sort || '-createdAt';
     const [items, total] = await Promise.all([
       this.postModel
@@ -46,7 +53,15 @@ export class PostService {
   }
 
   findOne(id: string) {
-    return this.postModel.findById(id).populate('author', 'email username').populate('category', 'name slug').lean();
+    // Tăng viewCount song song
+    return this.postModel.findByIdAndUpdate(
+      id,
+      { $inc: { viewCount: 1 } },
+      { new: true }
+    )
+      .populate('author', 'email username')
+      .populate('category', 'name slug')
+      .lean();
   }
 
   async update(id: string, updatePostDto: UpdatePostDto, userId?: string, isAdmin?: boolean) {
@@ -66,5 +81,48 @@ export class PostService {
       if (res?._id) this.events.emitToPost(res._id.toString(), 'post.deleted', { id: res._id });
       return res;
     });
+  }
+
+  async like(postId: string, userId: string) {
+    const updated = await this.postModel.findOneAndUpdate(
+      { _id: postId, likedBy: { $ne: userId } },
+      { $addToSet: { likedBy: userId }, $inc: { likeCount: 1 } },
+      { new: true }
+    )
+      .populate('author', 'email username')
+      .populate('category', 'name slug');
+    if (!updated) {
+      // Already liked or post not found -> fetch current state
+      const existing = await this.postModel.findById(postId)
+        .populate('author', 'email username')
+        .populate('category', 'name slug');
+      if (!existing) throw new NotFoundException('Không tìm thấy bài viết');
+      return existing.toJSON();
+    }
+    const json = updated.toJSON();
+    this.events.emitToPost(postId, 'post.liked', { postId, likeCount: json.likeCount });
+    this.events.server.emit('post.metrics', { postId, commentCount: json.commentCount, viewCount: json.viewCount, likeCount: json.likeCount });
+    return json;
+  }
+
+  async unlike(postId: string, userId: string) {
+    const updated = await this.postModel.findOneAndUpdate(
+      { _id: postId, likedBy: userId },
+      { $pull: { likedBy: userId }, $inc: { likeCount: -1 } },
+      { new: true }
+    )
+      .populate('author', 'email username')
+      .populate('category', 'name slug');
+    if (!updated) {
+      const existing = await this.postModel.findById(postId)
+        .populate('author', 'email username')
+        .populate('category', 'name slug');
+      if (!existing) throw new NotFoundException('Không tìm thấy bài viết');
+      return existing.toJSON();
+    }
+    const json = updated.toJSON();
+    this.events.emitToPost(postId, 'post.unliked', { postId, likeCount: json.likeCount });
+    this.events.server.emit('post.metrics', { postId, commentCount: json.commentCount, viewCount: json.viewCount, likeCount: json.likeCount });
+    return json;
   }
 }

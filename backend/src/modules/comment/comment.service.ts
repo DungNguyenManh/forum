@@ -21,12 +21,18 @@ export class CommentService {
     const exists = await this.postModel.exists({ _id: createCommentDto.post });
     if (!exists) throw new BadRequestException('Bài viết không tồn tại');
     const created = await this.commentModel.create(createCommentDto);
+    // Increase comment count
+    const updatedPost = await this.postModel.findByIdAndUpdate(createCommentDto.post, { $inc: { commentCount: 1 } }, { new: true }).lean();
     const populated = await this.commentModel
       .findById(created._id)
       .populate('author', 'email username')
       .lean();
     // Emit to post room
-    if (populated?.post) this.events.emitToPost(populated.post.toString(), 'comment.created', populated);
+    if (populated?.post) {
+      const postId = populated.post.toString();
+      this.events.emitToPost(postId, 'comment.created', populated);
+      if (updatedPost) this.events.server.emit('post.metrics', { postId, commentCount: updatedPost.commentCount, viewCount: updatedPost.viewCount, likeCount: updatedPost.likeCount });
+    }
     return populated;
   }
 
@@ -69,7 +75,11 @@ export class CommentService {
     if (!isAdmin && owner && owner !== userId) throw new ForbiddenException('Bạn không phải là chủ sở hữu');
     const postId = doc.post?.toString();
     await doc.deleteOne();
-    if (postId) this.events.emitToPost(postId, 'comment.deleted', { id });
+    if (postId) {
+      const updatedPost = await this.postModel.findByIdAndUpdate(postId, { $inc: { commentCount: -1 } }, { new: true }).lean();
+      this.events.emitToPost(postId, 'comment.deleted', { id });
+      if (updatedPost) this.events.server.emit('post.metrics', { postId, commentCount: updatedPost.commentCount, viewCount: updatedPost.viewCount, likeCount: updatedPost.likeCount });
+    }
     return { deleted: true };
   }
 }

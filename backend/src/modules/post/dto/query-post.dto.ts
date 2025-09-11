@@ -21,4 +21,12 @@ export class QueryPostDto {
     @IsOptional()
     @IsString()
     sort?: string; // e.g. '-createdAt' or 'title'
+
+    @IsOptional()
+    @IsString()
+    category?: string;
+
+    @IsOptional()
+    @IsString()
+    q?: string; // full-text search (title/content)
 }

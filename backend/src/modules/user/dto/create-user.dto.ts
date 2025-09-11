@@ -1,22 +1,29 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateUserDto {
-    @IsEmail({}, { message: 'Email không hợp lệ' })
-    @IsNotEmpty({ message: 'Email là bắt buộc' })
-    email: string;
 
-    @IsString({ message: 'Tên đăng nhập phải là chuỗi' })
-    @IsNotEmpty({ message: 'Tên đăng nhập là bắt buộc' })
-    @MinLength(3, { message: 'Tên đăng nhập phải có ít nhất 3 ký tự' })
+    @IsNotEmpty({ message: 'Tên người dùng không được để trống' })
     username: string;
 
-    @IsString({ message: 'Mật khẩu phải là chuỗi' })
-    @IsNotEmpty({ message: 'Mật khẩu là bắt buộc' })
-    @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
+    @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
     password: string;
 
-    @IsString({ message: 'Xác nhận mật khẩu phải là chuỗi' })
-    @IsNotEmpty({ message: 'Xác nhận mật khẩu là bắt buộc' })
-    @MinLength(6, { message: 'Xác nhận mật khẩu phải có ít nhất 6 ký tự' })
+    @IsNotEmpty({ message: 'Xác nhận mật khẩu không được để trống' })
     confirmPassword: string;
+
+    @IsNotEmpty({ message: 'Email không được để trống' })
+    @IsEmail({}, { message: 'Email không hợp lệ' })
+    email: string;
+
+    @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
+    phone: string;
+
+    @IsOptional()
+    age?: number;
+
+    @IsOptional()
+    address?: string;
+
+    @IsOptional()
+    avatar?: string;
 }

@@ -9,5 +9,6 @@ import { EventsModule } from '../events/events.module';
   imports: [MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }]), EventsModule],
   controllers: [PostController],
   providers: [PostService],
+  exports: [PostService],
 })
 export class PostModule { }

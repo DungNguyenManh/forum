@@ -42,4 +42,16 @@ export class PostController {
   remove(@Param('id') id: string) {
     return this.postService.remove(id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/like')
+  like(@Param('id') id: string, @GetUser() user: any) {
+    return this.postService.like(id, user?.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/unlike')
+  unlike(@Param('id') id: string, @GetUser() user: any) {
+    return this.postService.unlike(id, user?.sub);
+  }
 }

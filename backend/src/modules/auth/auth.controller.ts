@@ -1,29 +1,46 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Get, Req, UseGuards, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { GetUser } from './decorators/get-user.decorator';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
   @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(@Body() body: CreateUserDto) {
+    return this.authService.register(body);
   }
 
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() body: { email: string; password: string }) {
+    const user = await this.authService.validateUser(body.email, body.password);
+    return this.authService.login(user);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  me(@GetUser() user: any) {
-    return user;
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Guard sẽ tự redirect sang Google
   }
 
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req, @Res() res) {
+    const u = req.user;
+    const frontend = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+    const params = new URLSearchParams({
+      access_token: u?.access_token ?? '',
+      email: u?.email ?? '',
+      username: u?.username ?? '',
+      avatar: u?.avatar ?? '',
+      role: u?.role ?? 'user',
+    });
+
+    const url = new URL('/login', frontend);
+    url.search = params.toString();
+
+    return res.redirect(url.toString());
+  }
 }
-
