@@ -11,19 +11,23 @@ async function bootstrap() {
   // Security headers
   app.use(helmet());
 
-  // CORS disabled by default. To enable, set env CORS_ENABLE=true
-  if (process.env.CORS_ENABLE === 'true') {
+  // CORS: bật mặc định (đặt CORS_ENABLE=false để tắt). Nếu đặt CORS_ORIGINS thì chỉ cho phép các origin đó.
+  const corsShouldEnable = process.env.CORS_ENABLE !== 'false';
+  if (corsShouldEnable) {
     const allowlist = (process.env.CORS_ORIGINS || '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-    const corsOrigin = allowlist.length > 0 ? allowlist : true;
+    const useWildcard = allowlist.length === 0;
     app.enableCors({
-      origin: corsOrigin,
+      origin: useWildcard ? true : allowlist,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      credentials: false, // không cần cookies => có thể dùng wildcard
     });
+    console.log('[CORS]', useWildcard ? 'Enabled for all origins' : 'Allowlist:', allowlist);
+  } else {
+    console.log('[CORS] Disabled');
   }
 
   // Bật validation globally
