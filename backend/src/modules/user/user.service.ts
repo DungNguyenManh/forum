@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject, forwardRef, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema';
+import { Follow, FollowDocument } from './schemas/follow.schema';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationEmitterService } from '../../common/notification-emitter.service';
@@ -13,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Follow.name) private followModel: Model<FollowDocument>,
     @Inject(forwardRef(() => NotificationsGateway))
     private notificationsGateway: NotificationsGateway,
     private notificationsService: NotificationsService,
@@ -108,4 +110,74 @@ export class UsersService {
     await this.notificationsService.create('user_delete', `Người dùng đã bị xóa: ${user.username || user.email || user._id}`, id);
     return { message: 'Xóa người dùng thành công' };
   }
+
+  // FOLLOW FEATURE
+  async follow(currentUserId: string, targetUserId: string) {
+    if (currentUserId === targetUserId) {
+      throw new BadRequestException('Không thể tự theo dõi chính mình');
+    }
+    const target = await this.userModel.findById(targetUserId).select('_id username').lean();
+    if (!target) throw new NotFoundException('Người dùng cần theo dõi không tồn tại');
+
+    try {
+      const doc = await this.followModel.create({ follower: currentUserId, following: targetUserId });
+      // notify the target user that someone followed them
+      await this.notifier.success(
+        'user_followed',
+        'Bạn có người theo dõi mới',
+        { followerId: currentUserId, followingId: targetUserId },
+        targetUserId,
+      );
+      // system log for admins
+      await this.notificationsService.create('user_follow', `Người dùng ${currentUserId} theo dõi ${targetUserId}`, targetUserId);
+      return { message: 'Theo dõi thành công', id: doc._id.toString() };
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        throw new ConflictException('Bạn đã theo dõi người này');
+      }
+      throw err;
+    }
+  }
+
+  async unfollow(currentUserId: string, targetUserId: string) {
+    const res = await this.followModel.findOneAndDelete({ follower: currentUserId, following: targetUserId });
+    if (!res) {
+      throw new NotFoundException('Bạn chưa theo dõi người dùng này');
+    }
+    return { message: 'Bỏ theo dõi thành công' };
+  }
+
+  async listFollowers(userId: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      this.followModel.find({ following: userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('follower', '-password')
+        .lean(),
+      this.followModel.countDocuments({ following: userId }),
+    ]);
+    return { items, total, page, pages: Math.ceil(total / limit) };
+  }
+
+  async listFollowing(userId: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      this.followModel.find({ follower: userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('following', '-password')
+        .lean(),
+      this.followModel.countDocuments({ follower: userId }),
+    ]);
+    return { items, total, page, pages: Math.ceil(total / limit) };
+  }
+
+  async isFollowing(currentUserId: string, targetUserId: string) {
+    const exists = await this.followModel.exists({ follower: currentUserId, following: targetUserId });
+    return { following: !!exists };
+  }
+
 }

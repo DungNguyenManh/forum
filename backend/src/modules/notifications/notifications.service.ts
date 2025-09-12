@@ -18,9 +18,17 @@ export class NotificationsService {
         return this.notificationModel.find().sort({ createdAt: -1 }).lean();
     }
 
-    async findByUser(userId: string, onlyUnread = false, limit = 20, page = 1) {
+    async findByUser(opts: { userId: string; onlyUnread?: boolean; limit?: number; page?: number; q?: string; status?: string }) {
+        const { userId, onlyUnread = false } = opts;
+        const limit = Math.min(Math.max(opts.limit || 20, 1), 100);
+        const page = Math.max(opts.page || 1, 1);
         const filter: any = { userId };
         if (onlyUnread) filter.read = false;
+        if (opts.status && ['success', 'error', 'info'].includes(opts.status)) filter.status = opts.status;
+        if (opts.q) {
+            const safe = opts.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.message = { $regex: new RegExp(safe, 'i') };
+        }
         const skip = (page - 1) * limit;
         const [items, total] = await Promise.all([
             this.notificationModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -44,5 +52,12 @@ export class NotificationsService {
 
     async remove(id: string) {
         return this.notificationModel.findByIdAndDelete(id).lean();
+    }
+
+    async removeForUser(userId: string, id: string) {
+        const doc = await this.notificationModel.findOne({ _id: id, userId }).lean();
+        if (!doc) return { success: false, reason: 'not_found' };
+        await this.notificationModel.deleteOne({ _id: id, userId });
+        return { success: true };
     }
 }

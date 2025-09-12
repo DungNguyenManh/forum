@@ -35,8 +35,17 @@ export class NotificationsController {
         @Query('unread') unread?: string,
         @Query('limit') limit?: string,
         @Query('page') page?: string,
+        @Query('q') q?: string,
+        @Query('status') status?: string,
     ) {
-        return this.notificationsService.findByUser(userId, unread === 'true', limit ? parseInt(limit, 10) : 20, page ? parseInt(page, 10) : 1);
+        return this.notificationsService.findByUser({
+            userId,
+            onlyUnread: unread === 'true',
+            limit: limit ? parseInt(limit, 10) : 20,
+            page: page ? parseInt(page, 10) : 1,
+            q,
+            status,
+        });
     }
 
     @Get('me/unread-count')
@@ -53,5 +62,10 @@ export class NotificationsController {
     markSingle(@GetUser('sub') userId: string, @Param('id') id: string) {
         // simple guard: ensure notification belongs to user (service can enforce)
         return this.notificationsService.markAsRead(id);
+    }
+
+    @Delete('me/:id')
+    removeMine(@GetUser('sub') userId: string, @Param('id') id: string) {
+        return this.notificationsService.removeForUser(userId, id);
     }
 }

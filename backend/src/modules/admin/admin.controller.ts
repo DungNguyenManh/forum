@@ -53,7 +53,7 @@ export class AdminController {
 
   @Delete('posts/:id')
   removePost(@Param('id') id: string) {
-    return this.posts.remove(id).then(res => { if (res) this.notifier.success('admin_post_delete', 'Xóa bài viết (admin) thành công', { postId: id }); return res; });
+    return this.posts.softDelete(id, undefined, true).then(res => { if (res) this.notifier.success('admin_post_delete', 'Xóa bài viết (admin) thành công', { postId: id }); return res; });
   }
 
   // Quản lý comments: liệt kê theo post hoặc toàn bộ, xóa

@@ -1,4 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -38,5 +40,13 @@ export class CommentController {
   remove(@Param('id') id: string, @GetUser() user: any) {
     const isAdmin = (user?.roles || []).includes('admin');
     return this.commentService.remove(id, user?.sub, isAdmin);
+  }
+
+  @Roles('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post(':id/restore')
+  restore(@Param('id') id: string, @GetUser() user: any) {
+    const isAdmin = (user?.roles || []).includes('admin');
+    return this.commentService.restore(id, isAdmin);
   }
 }

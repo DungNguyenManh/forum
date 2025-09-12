@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -26,7 +26,7 @@ const AUTH_PROVIDERS: any[] = [AuthService, JwtStrategy, LocalStrategy];
       }),
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    NotificationsModule,
+    forwardRef(() => NotificationsModule),
   ],
   providers: AUTH_PROVIDERS,
   controllers: [AuthController],

@@ -21,3 +21,8 @@ export class Notification {
 
 export type NotificationDocument = Notification & Document;
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
+// Indexes for common access patterns
+// Query: user unread newest first -> { userId, read, createdAt }
+NotificationSchema.index({ userId: 1, read: 1, createdAt: -1 });
+// Fallback sort by createdAt for global streams
+NotificationSchema.index({ createdAt: -1 });

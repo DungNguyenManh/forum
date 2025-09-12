@@ -1,12 +1,19 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { UserModule } from '../user/user.module';
 import { CategoryModule } from '../category/category.module';
 import { PostModule } from '../post/post.module';
 import { CommentModule } from '../comment/comment.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [UserModule, CategoryModule, PostModule, CommentModule],
+  imports: [
+    UserModule,
+    CategoryModule,
+    PostModule,
+    CommentModule,
+    forwardRef(() => NotificationsModule),
+  ],
   controllers: [AdminController],
 })
 export class AdminModule { }

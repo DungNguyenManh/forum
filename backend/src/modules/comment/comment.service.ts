@@ -22,6 +22,18 @@ export class CommentService {
     // Validate referenced post exists
     const exists = await this.postModel.exists({ _id: createCommentDto.post });
     if (!exists) throw new BadRequestException('Bài viết không tồn tại');
+    // If replying to another comment: validate parent
+    if (createCommentDto.parentComment) {
+      const parent = await this.commentModel.findById(createCommentDto.parentComment).lean();
+      if (!parent) throw new BadRequestException('Bình luận gốc không tồn tại');
+      if (parent.post.toString() !== createCommentDto.post.toString()) {
+        throw new BadRequestException('Parent comment không thuộc bài viết này');
+      }
+      // Enforce 1-level depth (no reply to a reply that already has parentComment)
+      if ((parent as any).parentComment) {
+        throw new BadRequestException('Chỉ cho phép 1 cấp trả lời');
+      }
+    }
     const created = await this.commentModel.create(createCommentDto);
     // Increase comment count
     const updatedPost = await this.postModel.findByIdAndUpdate(createCommentDto.post, { $inc: { commentCount: 1 } }, { new: true }).lean();
@@ -40,7 +52,8 @@ export class CommentService {
   }
 
   async findAll(post?: string, page = 1, limit = 10, sort: string | any = '-createdAt') {
-    const filter = post ? { post } : {};
+    const base: any = { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] };
+    const filter = post ? { $and: [base, { post }] } : base;
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       this.commentModel
@@ -77,14 +90,33 @@ export class CommentService {
     if (!doc) throw new NotFoundException('Không tìm thấy bình luận');
     const owner = doc.author?.toString();
     if (!isAdmin && owner && owner !== userId) throw new ForbiddenException('Bạn không phải là chủ sở hữu');
+    if (doc.deletedAt) return { message: 'Bình luận đã bị xóa mềm' };
+    doc.deletedAt = new Date();
+    await doc.save();
     const postId = doc.post?.toString();
-    await doc.deleteOne();
     if (postId) {
       const updatedPost = await this.postModel.findByIdAndUpdate(postId, { $inc: { commentCount: -1 } }, { new: true }).lean();
-      this.events.emitToPost(postId, 'comment.deleted', { id });
+      this.events.emitToPost(postId, 'comment.soft_deleted', { id });
       if (updatedPost) this.events.server.emit('post.metrics', { postId, commentCount: updatedPost.commentCount, viewCount: updatedPost.viewCount, likeCount: updatedPost.likeCount });
-      this.notifier.success('comment_delete', 'Xóa bình luận thành công', { postId, commentId: id });
+      this.notifier.success('comment_soft_deleted', 'Xóa mềm bình luận', { postId, commentId: id });
     }
-    return { deleted: true };
+    return { message: 'Xóa mềm thành công' };
+  }
+
+  async restore(id: string, isAdmin?: boolean) {
+    if (!isAdmin) throw new ForbiddenException('Chỉ admin mới khôi phục');
+    const doc = await this.commentModel.findById(id);
+    if (!doc) throw new NotFoundException('Không tìm thấy bình luận');
+    if (!doc.deletedAt) return { message: 'Bình luận chưa bị xóa' };
+    doc.deletedAt = null as any; // remove timestamp
+    await doc.save();
+    const postId = doc.post?.toString();
+    if (postId) {
+      const updatedPost = await this.postModel.findByIdAndUpdate(postId, { $inc: { commentCount: 1 } }, { new: true }).lean();
+      this.events.emitToPost(postId, 'comment.restored', { id });
+      if (updatedPost) this.events.server.emit('post.metrics', { postId, commentCount: updatedPost.commentCount, viewCount: updatedPost.viewCount, likeCount: updatedPost.likeCount });
+      this.notifier.success('comment_restored', 'Khôi phục bình luận thành công', { postId, commentId: id });
+    }
+    return { message: 'Khôi phục thành công' };
   }
 }

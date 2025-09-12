@@ -29,4 +29,8 @@ export class QueryPostDto {
     @IsOptional()
     @IsString()
     q?: string; // full-text search (title/content)
+
+    @IsOptional()
+    @IsString()
+    tag?: string; // filter by a single tag
 }

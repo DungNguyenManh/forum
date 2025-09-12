@@ -29,6 +29,11 @@ export class PostController {
     return this.postService.findOne(id);
   }
 
+  @Get(':id/related')
+  related(@Param('id') id: string) {
+    return this.postService.findRelated(id, 5);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto, @GetUser() user: any) {
@@ -36,11 +41,18 @@ export class PostController {
     return this.postService.update(id, updatePostDto, user?.sub, isAdmin);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  softDelete(@Param('id') id: string, @GetUser() user: any) {
+    const isAdmin = (user?.roles || []).includes('admin');
+    return this.postService.softDelete(id, user?.sub, isAdmin);
+  }
+
   @Roles('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.postService.remove(id);
+  @Post(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.postService.restore(id, true);
   }
 
   @UseGuards(JwtAuthGuard)

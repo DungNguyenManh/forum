@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, Query } from '@nestjs/common';
 import { UsersService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -30,6 +30,7 @@ export class UsersController {
     return this.usersService.findOne(req.user.userId);
   }
 
+
   // Public profile endpoint (no password included)
   @Get(':id')
   async publicProfile(@Param('id') id: string) {
@@ -54,5 +55,34 @@ export class UsersController {
       return this.usersService.remove(id);
     }
     throw new ForbiddenException('Quyền truy cập bị từ chối. Bạn chỉ có thể xóa tài khoản của chính mình.');
+  }
+
+  // FOLLOW FEATURE
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/follow')
+  async follow(@Req() req: any, @Param('id') id: string) {
+    return this.usersService.follow(req.user.userId, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/follow')
+  async unfollow(@Req() req: any, @Param('id') id: string) {
+    return this.usersService.unfollow(req.user.userId, id);
+  }
+
+  @Get(':id/followers')
+  async followers(@Param('id') id: string, @Query('page') page = '1', @Query('limit') limit = '20') {
+    return this.usersService.listFollowers(id, Number(page), Number(limit));
+  }
+
+  @Get(':id/following')
+  async following(@Param('id') id: string, @Query('page') page = '1', @Query('limit') limit = '20') {
+    return this.usersService.listFollowing(id, Number(page), Number(limit));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/is-following')
+  async isFollowing(@Req() req: any, @Param('id') id: string) {
+    return this.usersService.isFollowing(req.user.userId, id);
   }
 }

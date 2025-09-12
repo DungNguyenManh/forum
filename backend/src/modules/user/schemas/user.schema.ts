@@ -19,6 +19,11 @@ export class User {
 
     @Prop()
     avatar?: string;
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+// Frequently searched fields
+UserSchema.index({ email: 1 });
+UserSchema.index({ username: 1 });
+// Compound for auth lookups (either username or email queries can leverage separate indexes)

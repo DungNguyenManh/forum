@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EventsGateway } from './events.gateway';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-    imports: [AuthModule],
+    imports: [forwardRef(() => AuthModule)],
     providers: [EventsGateway],
     exports: [EventsGateway],
 })

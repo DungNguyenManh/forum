@@ -14,7 +14,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { CategoryModule } from './modules/category/category.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { NotificationEmitterService } from './common/notification-emitter.service';
+import { ReportModule } from './modules/report/report.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -34,12 +35,13 @@ import { NotificationEmitterService } from './common/notification-emitter.servic
     EventsModule,
     CategoryModule,
     NotificationsModule,
+    ReportModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    NotificationEmitterService,
   ],
 })
 export class AppModule { }

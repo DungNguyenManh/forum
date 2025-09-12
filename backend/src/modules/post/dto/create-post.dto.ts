@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsOptional, IsString, MinLength, ArrayMaxSize, ArrayUnique } from 'class-validator';
 
 export class CreatePostDto {
     @IsString()
@@ -15,4 +15,11 @@ export class CreatePostDto {
     @IsOptional()
     @IsString()
     category?: string;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(10)
+    @ArrayUnique()
+    @IsString({ each: true })
+    tags?: string[];
 }
