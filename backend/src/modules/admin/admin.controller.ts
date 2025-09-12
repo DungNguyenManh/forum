@@ -6,6 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CategoryService } from '../category/category.service';
 import { PostService } from '../post/post.service';
 import { CommentService } from '../comment/comment.service';
+import { NotificationEmitterService } from '../../common/notification-emitter.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
@@ -16,6 +17,7 @@ export class AdminController {
     private readonly categories: CategoryService,
     private readonly posts: PostService,
     private readonly comments: CommentService,
+    private readonly notifier: NotificationEmitterService,
   ) { }
 
   // Kiểm tra quyền truy cập admin
@@ -32,7 +34,9 @@ export class AdminController {
 
   @Patch('users/:id/role')
   async updateRole(@Param('id') id: string, @Body() body: { role: 'user' | 'admin' }) {
-    return this.usersService.setRole(id, body.role);
+    const updated = await this.usersService.setRole(id, body.role);
+    if (updated) this.notifier.success('admin_user_role', 'Cập nhật quyền người dùng thành công', { userId: updated.id, role: updated.role });
+    return updated;
   }
 
   // Quản lý categories (chỉ đọc ở admin, tạo/sửa/xóa đã có trong CategoryController và bảo vệ bằng admin)
@@ -49,7 +53,7 @@ export class AdminController {
 
   @Delete('posts/:id')
   removePost(@Param('id') id: string) {
-    return this.posts.remove(id);
+    return this.posts.remove(id).then(res => { if (res) this.notifier.success('admin_post_delete', 'Xóa bài viết (admin) thành công', { postId: id }); return res; });
   }
 
   // Quản lý comments: liệt kê theo post hoặc toàn bộ, xóa
@@ -60,6 +64,6 @@ export class AdminController {
 
   @Delete('comments/:id')
   removeComment(@Param('id') id: string) {
-    return this.comments.remove(id, undefined, true);
+    return this.comments.remove(id, undefined, true).then(res => { if (res) this.notifier.success('admin_comment_delete', 'Xóa bình luận (admin) thành công', { commentId: id }); return res; });
   }
 }

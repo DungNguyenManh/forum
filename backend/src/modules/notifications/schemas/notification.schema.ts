@@ -14,6 +14,9 @@ export class Notification {
 
     @Prop({ default: false })
     read: boolean;
+
+    @Prop({ enum: ['success', 'error', 'info'], required: false })
+    status?: string;
 }
 
 export type NotificationDocument = Notification & Document;

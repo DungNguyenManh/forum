@@ -7,12 +7,14 @@ import { Post, PostDocument } from './schemas/post.schema';
 import { QueryPostDto } from './dto/query-post.dto';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationEmitterService } from '../../common/notification-emitter.service';
 
 @Injectable()
 export class PostService {
   constructor(
     @InjectModel(Post.name) private readonly postModel: Model<PostDocument>,
     private readonly events: EventsGateway,
+    private readonly notifier: NotificationEmitterService,
   ) { }
 
   async create(createPostDto: CreatePostDto) {
@@ -20,6 +22,7 @@ export class PostService {
     const saved = await created.save();
     // Emit realtime event
     this.events.emitToPost(saved._id.toString(), 'post.created', saved.toJSON());
+    this.notifier.success('post_create', 'Tạo bài viết thành công', { postId: saved._id });
     return saved;
   }
 
@@ -73,12 +76,16 @@ export class PostService {
     await doc.save();
     const json = doc.toJSON();
     this.events.emitToPost(doc._id.toString(), 'post.updated', json);
+    this.notifier.success('post_update', 'Cập nhật bài viết thành công', { postId: doc._id });
     return json;
   }
 
   remove(id: string) {
     return this.postModel.findByIdAndDelete(id).lean().then((res) => {
-      if (res?._id) this.events.emitToPost(res._id.toString(), 'post.deleted', { id: res._id });
+      if (res?._id) {
+        this.events.emitToPost(res._id.toString(), 'post.deleted', { id: res._id });
+        this.notifier.success('post_delete', 'Xóa bài viết thành công', { postId: res._id });
+      }
       return res;
     });
   }

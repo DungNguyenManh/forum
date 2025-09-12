@@ -7,6 +7,7 @@ import { Comment, CommentDocument } from './schemas/comment.schema';
 import { EventsGateway } from '../events/events.gateway';
 import { InjectModel as Inject } from '@nestjs/mongoose';
 import { Post, PostDocument } from '../post/schemas/post.schema';
+import { NotificationEmitterService } from '../../common/notification-emitter.service';
 
 @Injectable()
 export class CommentService {
@@ -14,6 +15,7 @@ export class CommentService {
     @InjectModel(Comment.name) private readonly commentModel: Model<CommentDocument>,
     private readonly events: EventsGateway,
     @Inject(Post.name) private readonly postModel: Model<PostDocument>,
+    private readonly notifier: NotificationEmitterService,
   ) { }
 
   async create(createCommentDto: CreateCommentDto & { author: string; post: string }) {
@@ -32,6 +34,7 @@ export class CommentService {
       const postId = populated.post.toString();
       this.events.emitToPost(postId, 'comment.created', populated);
       if (updatedPost) this.events.server.emit('post.metrics', { postId, commentCount: updatedPost.commentCount, viewCount: updatedPost.viewCount, likeCount: updatedPost.likeCount });
+      this.notifier.success('comment_create', 'Thêm bình luận thành công', { postId, commentId: populated._id });
     }
     return populated;
   }
@@ -65,6 +68,7 @@ export class CommentService {
     await doc.save();
     const json = doc.toJSON();
     if (doc.post) this.events.emitToPost(doc.post.toString(), 'comment.updated', json);
+    if (doc.post) this.notifier.success('comment_update', 'Cập nhật bình luận thành công', { postId: doc.post.toString(), commentId: doc._id });
     return json;
   }
 
@@ -79,6 +83,7 @@ export class CommentService {
       const updatedPost = await this.postModel.findByIdAndUpdate(postId, { $inc: { commentCount: -1 } }, { new: true }).lean();
       this.events.emitToPost(postId, 'comment.deleted', { id });
       if (updatedPost) this.events.server.emit('post.metrics', { postId, commentCount: updatedPost.commentCount, viewCount: updatedPost.viewCount, likeCount: updatedPost.likeCount });
+      this.notifier.success('comment_delete', 'Xóa bình luận thành công', { postId, commentId: id });
     }
     return { deleted: true };
   }

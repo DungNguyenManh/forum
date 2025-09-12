@@ -13,6 +13,8 @@ import { DatabaseModule } from './database/database.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { CategoryModule } from './modules/category/category.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { NotificationEmitterService } from './common/notification-emitter.service';
 
 @Module({
   imports: [
@@ -31,11 +33,13 @@ import { CategoryModule } from './modules/category/category.module';
     AdminModule,
     EventsModule,
     CategoryModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    NotificationEmitterService,
   ],
 })
 export class AppModule { }

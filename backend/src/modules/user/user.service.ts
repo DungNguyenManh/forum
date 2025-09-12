@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationEmitterService } from '../../common/notification-emitter.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -15,20 +16,21 @@ export class UsersService {
     @Inject(forwardRef(() => NotificationsGateway))
     private notificationsGateway: NotificationsGateway,
     private notificationsService: NotificationsService,
+    private readonly notifier: NotificationEmitterService,
   ) { }
 
   async create(dto: CreateUserDto): Promise<any> {
     try {
       if (dto.password !== dto.confirmPassword) {
-        this.notificationsGateway.server.emit('userRegisterResult', { success: false, message: 'Xác nhận mật khẩu không khớp' });
+        await this.notifier.error('user_register_result', 'Xác nhận mật khẩu không khớp');
         throw new BadRequestException('Xác nhận mật khẩu không khớp');
       }
       if (await this.userModel.exists({ email: dto.email })) {
-        this.notificationsGateway.server.emit('userRegisterResult', { success: false, message: 'Email đã được sử dụng' });
+        await this.notifier.error('user_register_result', 'Email đã được sử dụng');
         throw new ConflictException('Email đã được sử dụng');
       }
       if (await this.userModel.exists({ username: dto.username })) {
-        this.notificationsGateway.server.emit('userRegisterResult', { success: false, message: 'Username đã được sử dụng' });
+        await this.notifier.error('user_register_result', 'Username đã được sử dụng');
         throw new ConflictException('Username đã được sử dụng');
       }
       const password = await bcrypt.hash(dto.password, 10);
@@ -38,13 +40,8 @@ export class UsersService {
         role: 'user',
       });
       // Realtime: thông báo tạo user mới
-      this.notificationsGateway.server.emit('userCreated', {
-        userId: user._id,
-        username: user.username,
-        email: user.email,
-        createdAt: new Date().toISOString(),
-      });
-      this.notificationsGateway.server.emit('userRegisterResult', { success: true, message: 'Đăng ký thành công', userId: user._id });
+      await this.notifier.success('user_created', 'Tạo người dùng mới', { userId: user._id, username: user.username });
+      await this.notifier.success('user_register_result', 'Đăng ký thành công', { userId: user._id }, user._id.toString());
       // Log notification for admin
       await this.notificationsService.create('user_register', `Người dùng mới đăng ký: ${user.username} (${user.email})`, user._id.toString());
       // Trả về đầy đủ thông tin user, có cả _id và id
@@ -88,15 +85,11 @@ export class UsersService {
         { new: true },
       ).select('-password').lean();
       if (!user) {
-        this.notificationsGateway.server.emit('userUpdateResult', { success: false, message: 'Không tìm thấy người dùng' });
+        await this.notifier.error('user_update_result', 'Không tìm thấy người dùng');
         throw new NotFoundException('Không tìm thấy người dùng');
       }
-      // Realtime: thông báo cập nhật user
-      this.notificationsGateway.server.emit('userUpdated', {
-        userId: user._id,
-        updatedAt: new Date().toISOString(),
-      });
-      this.notificationsGateway.server.emit('userUpdateResult', { success: true, message: 'Cập nhật thông tin thành công', userId: user._id });
+      await this.notifier.success('user_updated', 'Cập nhật người dùng', { userId: user._id });
+      await this.notifier.success('user_update_result', 'Cập nhật thông tin thành công', { userId: user._id }, user._id.toString());
       // Log notification for admin
       await this.notificationsService.create('user_update', `Người dùng cập nhật thông tin: ${user.username || user.email || user._id}`, user._id.toString());
       return user;
@@ -110,10 +103,7 @@ export class UsersService {
     const user = await this.userModel.findByIdAndDelete(id).lean();
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     // Realtime: thông báo xóa user
-    this.notificationsGateway.server.emit('userDeleted', {
-      userId: id,
-      deletedAt: new Date().toISOString(),
-    });
+    await this.notifier.success('user_deleted', 'Xóa người dùng thành công', { userId: id });
     // Log notification for admin
     await this.notificationsService.create('user_delete', `Người dùng đã bị xóa: ${user.username || user.email || user._id}`, id);
     return { message: 'Xóa người dùng thành công' };

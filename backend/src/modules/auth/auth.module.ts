@@ -7,6 +7,7 @@ import { UserModule } from '../user/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User, UserSchema } from '../user/schemas/user.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { JwtStrategy } from './jwt.strategy';
 import { LocalStrategy } from './local.strategy';
 const AUTH_PROVIDERS: any[] = [AuthService, JwtStrategy, LocalStrategy];
@@ -25,6 +26,7 @@ const AUTH_PROVIDERS: any[] = [AuthService, JwtStrategy, LocalStrategy];
       }),
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    NotificationsModule,
   ],
   providers: AUTH_PROVIDERS,
   controllers: [AuthController],

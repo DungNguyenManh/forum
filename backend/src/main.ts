@@ -3,6 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { HttpExceptionNotifyFilter } from './common/filters/http-exception-notify.filter';
+import { NotificationEmitterService } from './common/notification-emitter.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -38,6 +40,10 @@ async function bootstrap() {
   }));
 
   app.setGlobalPrefix('api/v1', { exclude: [''] });
+
+  // Global exception notification filter
+  const notifier = app.get(NotificationEmitterService);
+  app.useGlobalFilters(new HttpExceptionNotifyFilter(notifier));
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
